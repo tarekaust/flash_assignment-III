@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Home - Flask MVC</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .scrollable-table {
+            max-height: 400px;
+            overflow-y: auto;
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .chart-box {
+            flex: 1;
+            max-width: 50%;
+            height: 800px;
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome!</h1>
+
+    <!-- Tournaments Table -->
+    <h2>Tournaments</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tournament in tournaments %}
+            <tr>
+                <td>{{ tournament.id }}</td>
+                <td>{{ tournament.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Matches Table -->
+    <h2>Matches</h2>
+    <div class="scrollable-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Home Team</th>
+                    <th>Away Team</th>
+                    <th>Home Score</th>
+                    <th>Away Score</th>
+                    <th>Date</th>
+                    <th>City</th>
+                    <th>Country</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match in matches %}
+                <tr>
+                    <td>{{ match.id }}</td>
+                    <td>{{ match.home_team }}</td>
+                    <td>{{ match.away_team }}</td>
+                    <td>{{ match.home_score }}</td>
+                    <td>{{ match.away_score }}</td>
+                    <td>{{ match.date }}</td>
+                    <td>{{ match.match_city }}</td>
+                    <td>{{ match.match_country }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p>Total Matches: {{ matches|length }}</p>
+
+    <!-- Goal Scorers Table -->
+    <h2>Goal Scorers</h2>
+    <div class="scrollable-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Home Team</th>
+                    <th>Away Team</th>
+                    <th>Team Scored</th>
+                    <th>Scorer</th>
+                    <th>Minute</th>
+                    <th>Match ID</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for scorer in goal_scorers %}
+                <tr>
+                    <td>{{ scorer.id }}</td>
+                    <td>{{ scorer.home_team }}</td>
+                    <td>{{ scorer.away_team }}</td>
+                    <td>{{ scorer.team_scored }}</td>
+                    <td>{{ scorer.scorer }}</td>
+                    <td>{{ scorer.minute }}</td>
+                    <td>{{ scorer.match_id }}</td>
+                    <td>{{ scorer.date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p>Total Goal Score: {{ goal_scorers|length }}</p>
+
+    {% if selected_country %}
+    <h3>Goals Scored by {{ selected_country }} per Year</h3>
+    <div style="display: flex; gap: 40px; align-items: flex-start;">
+        <div style="flex: 1;">
+            <img src="data:image/png;base64,{{ country_chart_image }}" alt="Country Goals Chart">
+        </div>
+        <div style="flex: 2; max-height: 500px; overflow-y: auto;">
+            <h4>Match Goal Scorer Details for {{ selected_country }}</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Match ID</th>
+                        <th>Date</th>
+                        <th>Tournament</th>
+                        <th>Home Team</th>
+                        <th>Away Team</th>
+                        <th>Scorer</th>
+                        <th>Minute</th>
+                        <th>Team Scored</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scorer in country_scorers %}
+                    {% set match = (country_matches | selectattr('id', 'equalto', scorer.match_id) | list).0 %}
+                    {% set tournament = tournaments | selectattr('id', 'equalto', match.tournament_id) | list %}
+                    <tr>
+                        <td>{{ scorer.match_id }}</td>
+                        <td>{{ match.date if match else '' }}</td>
+                        <td>{{ tournament[0].name if tournament else 'N/A' }}</td>
+                        <td>{{ match.home_team if match else '' }}</td>
+                        <td>{{ match.away_team if match else '' }}</td>
+                        <td>{{ scorer.scorer }}</td>
+                        <td>{{ scorer.minute }}</td>
+                        <td>{{ scorer.team_scored }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- New Section: Scrollable Table for Country Matches & Tournaments -->
+    <h3>Matches & Tournaments in {{ selected_country }}</h3>
+    <div class="scrollable-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Match ID</th>
+                    <th>Date</th>
+                    <th>Home Team</th>
+                    <th>Away Team</th>
+                    <th>Score</th>
+                    <th>City</th>
+                    <th>Tournament</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match in country_matches %}
+                {% set tournament = country_tournaments | selectattr('id', 'equalto', match.tournament_id) | list %}
+                <tr>
+                    <td>{{ match.id }}</td>
+                    <td>{{ match.date }}</td>
+                    <td>{{ match.home_team }}</td>
+                    <td>{{ match.away_team }}</td>
+                    <td>{{ match.home_score }} - {{ match.away_score }}</td>
+                    <td>{{ match.match_city }}</td>
+                    <td>{{ tournament[0].name if tournament else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Country Selection Dropdown -->
+    <h3>Select a Country</h3>
+    <form method="get" action="/">
+        <select name="selected_country">
+            <option value="">-- Select Country --</option>
+            {% for country in country_list %}
+            <option value="{{ country }}" {% if country == selected_country %}selected{% endif %}>{{ country }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Show Chart</button>
+    </form>
+
+    <!-- Charts Section -->
+    <hr>
+    <h2>Charts</h2>
+    <div class="chart-container">
+        <div class="chart-box">
+            <h3>Top Goal Scorers</h3>
+            <canvas id="pieChart"></canvas>
+        </div>
+        <div class="chart-box">
+            <h3>Matches Per Year</h3>
+            <canvas id="barChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Heatmap-style Chart -->
+    <div style="margin-top: 100px;">
+        <h3>Goals by Minute Range</h3>
+        <canvas id="heatChart" width="400" height="200"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        new Chart(document.getElementById('pieChart'), {
+            type: 'pie',
+            data: {
+                labels: {{ pie_labels | tojson }},
+                datasets: [{
+                    label: 'Goals',
+                    data: {{ pie_data | tojson }},
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#8E44AD', '#1ABC9C',
+                                      '#F39C12', '#E74C3C', '#3498DB', '#2ECC71', '#9B59B6']
+                }]
+            }
+        });
+
+        new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ bar_labels | tojson }},
+                datasets: [{
+                    label: 'Matches',
+                    data: {{ bar_data | tojson }},
+                    backgroundColor: '#3498DB'
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById('heatChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ heatmap_labels | tojson }},
+                datasets: [{
+                    label: 'Goals',
+                    data: {{ heatmap_data | tojson }},
+                    backgroundColor: '#E67E22'
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
