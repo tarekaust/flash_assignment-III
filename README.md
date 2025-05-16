@@ -48,7 +48,7 @@ flash_assignment/
 
 ### Steps
 1. Clone the repository:
-   git clone https://github.com/your-repo/flash_assignment.git
+   git clone https://github.com/tarekaust/flash_assignment-III.git
    cd flash_assignment
    
 
